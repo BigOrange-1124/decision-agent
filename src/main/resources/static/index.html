@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>真 Agent - 实时思考过程</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .timeline {
+            margin-top: 30px;
+            padding-left: 30px;
+            border-left: 3px solid #e0e0e0;
+        }
+        .timeline-item {
+            margin-bottom: 20px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -34px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        .step {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .thinking {
+            color: #ffc107;
+            font-style: italic;
+        }
+        .tool {
+            background: #e8f5e9;
+            padding: 10px;
+            border-left: 4px solid #28a745;
+            margin-top: 5px;
+        }
+        .final {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 真 Agent - 实时思考过程</h1>
+        <textarea id="userMessage" placeholder="请输入你的问题，例如：我现在20k，工作3年，想跳槽能涨多少？"></textarea>
+        <button onclick="startAnalysis()">🚀 开始分析</button>
+        <div id="timeline" class="timeline">
+            <div style="text-align: center; color: #999; padding: 20px;">
+                等待输入...
+            </div>
+        </div>
+    </div>
+    <script>
+        function startAnalysis() {
+            const message = document.getElementById('userMessage').value;
+            if (!message) {
+                alert('请输入问题');
+                return;
+            }
+            document.getElementById('timeline').innerHTML = '';
+            const eventSource = new EventSource('/api/chat/stream?message=' + encodeURIComponent(message));
+            eventSource.addEventListener('step', (e) => addStep(e.data));
+            eventSource.addEventListener('thinking', (e) => addThinking(e.data));
+            eventSource.addEventListener('info', (e) => addInfo(e.data));
+            eventSource.addEventListener('tool_start', (e) => addToolStart(e.data));
+            eventSource.addEventListener('progress', (e) => addProgress(e.data));
+            eventSource.addEventListener('tool_end', (e) => addToolEnd(e.data));
+            eventSource.addEventListener('final', (e) => addFinal(e.data));
+            eventSource.addEventListener('done', (e) => {
+                addDone();
+                eventSource.close();
+            });
+        }
+        function addStep(text) {
+            append('<div class="timeline-item"><div class="step">📍 ' + text + '</div></div>');
+        }
+        function addThinking(text) {
+            append('<div class="timeline-item"><div class="thinking">🤔 ' + text + '</div></div>');
+        }
+        function addInfo(text) {
+            append('<div class="timeline-item"><div>ℹ️ ' + text + '</div></div>');
+        }
+        function addToolStart(text) {
+            append('<div class="timeline-item"><div class="step">⚙️ ' + text + '</div><div class="tool" id="tool"></div></div>');
+        }
+        function addProgress(text) {
+            const tool = document.querySelector('#tool');
+            if (tool) tool.innerHTML += '→ ' + text + '<br>';
+        }
+        function addToolEnd(text) {
+            const tool = document.querySelector('#tool');
+            if (tool) tool.innerHTML += '✓ 完成<br>';
+        }
+        function addFinal(text) {
+            append('<div class="timeline-item"><div class="final">💡 ' + text + '</div></div>');
+        }
+        function addDone() {
+            append('<div class="timeline-item"><div style="color: #28a745; font-weight: bold;">✅ 分析完成</div></div>');
+        }
+        function append(html) {
+            document.getElementById('timeline').innerHTML += html;
+        }
+    </script>
+</body>
+</html>
