@@ -9,10 +9,21 @@ import java.time.Month;
 import java.time.YearMonth;
 
 /**
- * Market Analysis Tool
+ * 市场分析工具
  *
- * Analyzes the current job market conditions, including hiring trends,
- * industry health, and optimal timing for job switching.
+ * 【核心职责】
+ * 分析当前招聘市场环境和最佳跳槽时机
+ *
+ * 【分析维度】
+ * 1. 季节性招聘模式（金三银四、金九银十）
+ * 2. 行业趋势和热门方向
+ * 3. 不同经验阶段的择业建议
+ * 4. 市场活跃度信号
+ *
+ * 【季节性规律】
+ * - 金三银四（2-4月）：跳槽黄金期
+ * - 金九银十（9-11月）：次旺季
+ * - 其他月份：淡季，但竞争少
  *
  * @author DecisionAgent Team
  * @version 1.0.0
@@ -33,30 +44,33 @@ public class MarketAnalysisTool implements AnalysisTool {
 
     @Override
     public int getOrder() {
-        return 3;
+        return 3;  // 第三优先级
     }
 
     @Override
     public String analyze(UserProfile profile, String userMessage) {
-        log.info("Analyzing market dimension for profile: {}", profile);
+        log.info("【市场分析】开始分析用户画像：{}", profile);
 
         StringBuilder analysis = new StringBuilder();
         analysis.append("【市场维度分析】\n");
 
-        // Seasonal hiring patterns
+        // 步骤 1：季节性招聘模式分析
         Month currentMonth = YearMonth.now().getMonth();
         analysis.append("• 当前时间：").append(currentMonth.name()).append("\n");
 
         int monthValue = currentMonth.getValue();
         if (monthValue >= 2 && monthValue <= 4) {
+            // 金三银四（春季）
             analysis.append("• 金三银四：当前是跳槽黄金期，机会多，薪资涨幅可达30%+\n");
         } else if (monthValue >= 9 && monthValue <= 11) {
+            // 金九银十（秋季）
             analysis.append("• 金九银十：当前是次旺季，企业秋招补录机会多\n");
         } else {
+            // 淡季
             analysis.append("• 淡季建议：当前市场相对平淡，但竞争少，可提前准备\n");
         }
 
-        // Industry trends
+        // 步骤 2：行业趋势分析
         analysis.append("\n【行业趋势】\n");
         analysis.append("🔥 热门方向（机会多）：\n");
         analysis.append("  • AI/大模型应用开发 - 人才缺口大，薪资溢价高\n");
@@ -68,7 +82,7 @@ public class MarketAnalysisTool implements AnalysisTool {
         analysis.append("  • 企业服务 - ToB业务现金流好\n");
         analysis.append("  • 传统行业数字化 - 转型需求持续\n");
 
-        // Company type recommendations
+        // 步骤 3：根据工作年限推荐公司类型
         analysis.append("\n【公司类型建议】\n");
         Integer workYears = profile.getWorkYears();
         if (workYears != null && workYears < 3) {
@@ -82,7 +96,7 @@ public class MarketAnalysisTool implements AnalysisTool {
             analysis.append("  理由：职业后期更看重稳定性和长期收益\n");
         }
 
-        // Market signals
+        // 步骤 4：市场活跃度信号
         analysis.append("\n【市场信号】\n");
         analysis.append("✓ 市场活跃的信号：\n");
         analysis.append("  - 猎头主动联系频率增加\n");

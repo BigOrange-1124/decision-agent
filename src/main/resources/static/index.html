@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>真 Agent - 实时思考过程</title>
+    <title>ReAct Agent - 实时思考过程</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,10 +16,17 @@
             background: white;
             border-radius: 16px;
             padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         h1 {
             text-align: center;
             color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
         }
         textarea {
             width: 100%;
@@ -27,16 +34,32 @@
             padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
         }
         button {
             padding: 12px 24px;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             margin-top: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         .timeline {
             margin-top: 30px;
@@ -47,6 +70,17 @@
             margin-bottom: 20px;
             padding-left: 20px;
             position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
         .timeline-item::before {
             content: '';
@@ -58,88 +92,298 @@
             border-radius: 50%;
             background: #667eea;
         }
-        .step {
+        .round-header {
             font-weight: bold;
             color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1.1em;
         }
-        .thinking {
-            color: #ffc107;
-            font-style: italic;
+        .round-content {
+            margin-bottom: 8px;
+            line-height: 1.6;
         }
-        .tool {
+        .round-content:last-child {
+            margin-bottom: 0;
+        }
+        .thought {
+            background: #f0f4ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 8px;
+        }
+        .action {
             background: #e8f5e9;
-            padding: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
             border-left: 4px solid #28a745;
-            margin-top: 5px;
+            margin-bottom: 8px;
         }
-        .final {
+        .observation {
             background: #fff3cd;
-            padding: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
             border-left: 4px solid #ffc107;
+            margin-bottom: 8px;
+        }
+        .final-answer {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .loading-dots {
+            display: inline-flex;
+            gap: 5px;
+        }
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .example-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        .example-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🤖 真 Agent - 实时思考过程</h1>
+        <h1>🤖 ReAct Agent - 实时思考过程</h1>
+        <p class="subtitle">AI 职业决策助手 - 会思考、会行动、会观察</p>
+
         <textarea id="userMessage" placeholder="请输入你的问题，例如：我现在20k，工作3年，想跳槽能涨多少？"></textarea>
-        <button onclick="startAnalysis()">🚀 开始分析</button>
+        <button id="sendButton" onclick="startAnalysis()">🚀 开始分析</button>
+
+        <div class="examples">
+            <strong>💡 试试这些问题：</strong><br>
+            <div class="example-item" onclick="useExample('我现在20k，想跳槽能涨多少？')">
+                💰 我现在20k，想跳槽能涨多少？
+            </div>
+            <div class="example-item" onclick="useExample('我要不要跳槽？我现在20k，工作3年')">
+                🤔 我要不要跳槽？我现在20k，工作3年
+            </div>
+            <div class="example-item" onclick="useExample('现在适合跳槽吗？')">
+                📊 现在适合跳槽吗？
+            </div>
+        </div>
+
         <div id="timeline" class="timeline">
             <div style="text-align: center; color: #999; padding: 20px;">
                 等待输入...
             </div>
         </div>
     </div>
+
     <script>
+        let eventSource = null;
+
+        function useExample(message) {
+            document.getElementById('userMessage').value = message;
+            startAnalysis();
+        }
+
         function startAnalysis() {
-            const message = document.getElementById('userMessage').value;
+            const message = document.getElementById('userMessage').value.trim();
             if (!message) {
                 alert('请输入问题');
                 return;
             }
+
+            // 禁用按钮
+            document.getElementById('sendButton').disabled = true;
+
+            // 清空时间线
             document.getElementById('timeline').innerHTML = '';
-            const eventSource = new EventSource('/api/chat/stream?message=' + encodeURIComponent(message));
-            eventSource.addEventListener('step', (e) => addStep(e.data));
-            eventSource.addEventListener('thinking', (e) => addThinking(e.data));
-            eventSource.addEventListener('info', (e) => addInfo(e.data));
-            eventSource.addEventListener('tool_start', (e) => addToolStart(e.data));
-            eventSource.addEventListener('progress', (e) => addProgress(e.data));
-            eventSource.addEventListener('tool_end', (e) => addToolEnd(e.data));
-            eventSource.addEventListener('final', (e) => addFinal(e.data));
+
+            // 添加开始提示
+            appendToTimeline(`
+                <div class="timeline-item">
+                    <div class="round-header">🤔 AI 正在思考...</div>
+                </div>
+            `);
+
+            // 连接 SSE（使用 ReAct Agent 接口）
+            const url = '/api/react/chat/stream?message=' + encodeURIComponent(message);
+            eventSource = new EventSource(url);
+
+            let currentRound = null;
+            let currentRoundDiv = null;
+
+            // 监听轮次事件
+            eventSource.addEventListener('round', (e) => {
+                const roundNumber = e.data.replace('Round ', '');
+                currentRound = parseInt(roundNumber);
+
+                // 创建新的轮次容器
+                currentRoundDiv = document.createElement('div');
+                currentRoundDiv.className = 'timeline-item';
+                currentRoundDiv.innerHTML = `
+                    <div class="round-header">💭 Round ${roundNumber}</div>
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                `;
+                document.getElementById('timeline').appendChild(currentRoundDiv);
+                scrollToBottom();
+            });
+
+            // 监听思考事件
+            eventSource.addEventListener('thought', (e) => {
+                if (currentRoundDiv) {
+                    const thoughtDiv = document.createElement('div');
+                    thoughtDiv.className = 'thought';
+                    thoughtDiv.innerHTML = `<strong>💭 思考：</strong>${escapeHtml(e.data)}`;
+                    currentRoundDiv.appendChild(thoughtDiv);
+                    scrollToBottom();
+                }
+            });
+
+            // 监听行动事件
+            eventSource.addEventListener('action', (e) => {
+                if (currentRoundDiv) {
+                    const actionDiv = document.createElement('div');
+                    actionDiv.className = 'action';
+                    actionDiv.innerHTML = `<strong>🎬 行动：</strong>${escapeHtml(e.data)}`;
+                    currentRoundDiv.appendChild(actionDiv);
+                    scrollToBottom();
+                }
+            });
+
+            // 监听观察事件
+            eventSource.addEventListener('observation', (e) => {
+                if (currentRoundDiv) {
+                    // 移除加载动画
+                    const loadingDots = currentRoundDiv.querySelector('.loading-dots');
+                    if (loadingDots) {
+                        loadingDots.remove();
+                    }
+
+                    const observationDiv = document.createElement('div');
+                    observationDiv.className = 'observation';
+                    // 截断过长的观察结果
+                    let observation = e.data;
+                    if (observation.length > 200) {
+                        observation = observation.substring(0, 200) + '...';
+                    }
+                    observationDiv.innerHTML = `<strong>👁️ 观察：</strong>${escapeHtml(observation)}`;
+                    currentRoundDiv.appendChild(observationDiv);
+                    scrollToBottom();
+                }
+            });
+
+            // 监听最终答案事件
+            eventSource.addEventListener('final_answer', (e) => {
+                const finalDiv = document.createElement('div');
+                finalDiv.className = 'timeline-item';
+                finalDiv.innerHTML = `
+                    <div class="final-answer">
+                        <strong>✅ 最终答案</strong><br><br>
+                        ${escapeHtml(e.data).replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                document.getElementById('timeline').appendChild(finalDiv);
+                scrollToBottom();
+            });
+
+            // 监听完成事件
             eventSource.addEventListener('done', (e) => {
-                addDone();
+                setTimeout(() => {
+                    const doneDiv = document.createElement('div');
+                    doneDiv.className = 'timeline-item';
+                    doneDiv.innerHTML = `
+                        <div style="color: #28a745; font-weight: bold;">
+                            ✓ ${e.data}
+                        </div>
+                    `;
+                    document.getElementById('timeline').appendChild(doneDiv);
+                    scrollToBottom();
+
+                    // 恢复按钮
+                    document.getElementById('sendButton').disabled = false;
+                }, 500);
+
                 eventSource.close();
             });
+
+            // 监听错误事件
+            eventSource.addEventListener('error', (e) => {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'timeline-item';
+                errorDiv.innerHTML = `
+                    <div style="color: #dc3545; font-weight: bold;">
+                        ❌ 错误：${escapeHtml(e.data)}
+                    </div>
+                `;
+                document.getElementById('timeline').appendChild(errorDiv);
+                scrollToBottom();
+
+                // 恢复按钮
+                document.getElementById('sendButton').disabled = false;
+                eventSource.close();
+            });
+
+            // 连接关闭
+            eventSource.onerror = () => {
+                // 恢复按钮
+                document.getElementById('sendButton').disabled = false;
+                eventSource.close();
+            };
         }
-        function addStep(text) {
-            append('<div class="timeline-item"><div class="step">📍 ' + text + '</div></div>');
-        }
-        function addThinking(text) {
-            append('<div class="timeline-item"><div class="thinking">🤔 ' + text + '</div></div>');
-        }
-        function addInfo(text) {
-            append('<div class="timeline-item"><div>ℹ️ ' + text + '</div></div>');
-        }
-        function addToolStart(text) {
-            append('<div class="timeline-item"><div class="step">⚙️ ' + text + '</div><div class="tool" id="tool"></div></div>');
-        }
-        function addProgress(text) {
-            const tool = document.querySelector('#tool');
-            if (tool) tool.innerHTML += '→ ' + text + '<br>';
-        }
-        function addToolEnd(text) {
-            const tool = document.querySelector('#tool');
-            if (tool) tool.innerHTML += '✓ 完成<br>';
-        }
-        function addFinal(text) {
-            append('<div class="timeline-item"><div class="final">💡 ' + text + '</div></div>');
-        }
-        function addDone() {
-            append('<div class="timeline-item"><div style="color: #28a745; font-weight: bold;">✅ 分析完成</div></div>');
-        }
-        function append(html) {
+
+        function appendToTimeline(html) {
             document.getElementById('timeline').innerHTML += html;
         }
+
+        function scrollToBottom() {
+            const timeline = document.getElementById('timeline');
+            timeline.scrollTop = timeline.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 页面加载完成后自动聚焦输入框
+        window.onload = () => {
+            document.getElementById('userMessage').focus();
+        };
     </script>
 </body>
 </html>
